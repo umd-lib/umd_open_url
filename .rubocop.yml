@@ -1,0 +1,40 @@
+inherit_mode:
+  merge:
+    - Include
+
+# Exclude auto-generated files
+AllCops:
+  Exclude:
+    - 'bin/*'
+
+  TargetRubyVersion: 2.3
+
+# Don't require gems in Gemfile to be in alphabetical order.
+Bundler/OrderedGems:
+  Enabled: false
+
+# Increase max allowed line length
+Metrics/LineLength:
+  Max: 120
+
+Metrics/ClassLength:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/MethodLength:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/ModuleLength:
+  Exclude:
+    - 'test/**/*'
+
+Style/FrozenStringLiteralComment:
+  Exclude:
+    - Gemfile
+    - Rakefile
+
