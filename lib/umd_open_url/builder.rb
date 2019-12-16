@@ -18,6 +18,11 @@ module UmdOpenUrl
       self
     end
 
+    def issue(issue_number)
+      @params_map['rft.issue'] = issue_number
+      self
+    end
+
     def start_page(start_page)
       @params_map['rft.spage'] = start_page
       self
