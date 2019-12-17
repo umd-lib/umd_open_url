@@ -4,9 +4,19 @@ require 'faraday'
 require 'rack'
 
 module UmdOpenUrl
-  # Queries an OpenUrl, returning a direct link to the resource, if available.
+  # Queries the OpenUrl resolver service, returning links to the resource,
+  # if available.
   class Resolver
+    # Returns a list of URLs as provided by the OpenURL resolver server, or an
+    # empty list if no results are found, or an error occurs.
     def self.resolve(open_url)
+      json = query(open_url)
+      links = parse_response(json)
+      links
+    end
+
+    # Performs the network request, returning a JSON object
+    def self.query(open_url)
       return nil if open_url.nil?
 
       # Perform a HTTP GET request to the WorldCat OpenUrl Resolver
@@ -22,14 +32,16 @@ module UmdOpenUrl
       end
     end
 
-    def self.parse_response(json) # rubocop:disable Metrics/AbcSize,  Metrics/MethodLength, Metrics/CyclomaticComplexity
-      return nil if json.nil?
+    # Parses the given JSON object, returning a list of links, or an empty
+    # list if there are no results, or an error occurs
+    def self.parse_response(json) # rubocop:disable Metrics/AbcSize,  Metrics/MethodLength
+      filtered_linker_urls = []
+
+      return filtered_linker_urls if json.nil?
 
       # Find the items with a non-empty "linkerurl" parameter
       jsons_with_linkerurl = json.select { |j| !j['linkerurl'].nil? && !j['linkerurl'].empty? }
-      return nil unless jsons_with_linkerurl
-
-      filtered_linker_urls = []
+      return filtered_linker_urls unless jsons_with_linkerurl
 
       jsons_with_linkerurl.each do |j|
         linkerurl = j['linkerurl']
@@ -59,11 +71,6 @@ module UmdOpenUrl
         filtered_linker_url = filtered_linkerurl_uri.to_s
 
         filtered_linker_urls << filtered_linker_url
-      end
-
-      if filtered_linker_urls.empty?
-        UmdOpenUrl.logger.debug('UmdOpenUrl::Builder.build - parse_response: No linkerurls found. Returning nil.')
-        return nil
       end
 
       UmdOpenUrl.logger.debug(
