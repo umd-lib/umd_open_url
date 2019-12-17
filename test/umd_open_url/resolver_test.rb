@@ -59,33 +59,42 @@ class TestResolver < Minitest::Test
     assert_nil link
   end
 
-  def test_parser_with_valid_linkerurl_response
+  def test_parser_with_single_valid_linkerurl_response
     # linkerurl should have query parameters
     json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?foo=abc"}]')
     link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    assert_equal 'http://link.worldcat.org?foo=abc', link[0]
+  end
+
+  def test_parser_with_multiple_valid_linkerurl_response
+    # linkerurl should have query parameters
+    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?foo=abc"},
+                       {"linkerurl": "http://link.worldcat.org?bar=cde"} ]')
+    link = UmdOpenUrl::Resolver.parse_response(json)
+    assert_equal 'http://link.worldcat.org?foo=abc', link[0]
+    assert_equal 'http://link.worldcat.org?bar=cde', link[1]
   end
 
   def test_wskey_filtering # rubocop:disable Metrics/AbcSize
     # linkerurl should have query parameters
     json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?foo=abc&wskey=123"}]')
     link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    assert_equal 'http://link.worldcat.org?foo=abc', link[0]
 
     json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?wskey=123&foo=abc"}]')
     link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    assert_equal 'http://link.worldcat.org?foo=abc', link[0]
 
     json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?wskey=123&foo=abc"}]')
     link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    assert_equal 'http://link.worldcat.org?foo=abc', link[0]
 
     json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?bar=456&wskey=123&foo=abc"}]')
     link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?bar=456&foo=abc', link
+    assert_equal 'http://link.worldcat.org?bar=456&foo=abc', link[0]
 
     json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?wskey=123"}]')
     link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org', link
+    assert_equal 'http://link.worldcat.org', link[0]
   end
 end

@@ -2,6 +2,7 @@
 
 require 'umd_open_url/builder'
 require 'umd_open_url/resolver'
+require 'logger'
 
 # Common utilities for the module
 module UmdOpenUrl

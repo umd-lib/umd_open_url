@@ -43,11 +43,11 @@ module UmdOpenUrl
     def build
       params = @params_map.map { |k, v| "#{k}=#{v}" }.join('&')
       open_url = @resolver_url + '?' + params
-      UmdOpenUrl.logger.debug {
+      UmdOpenUrl.logger.debug do
         # Filter out the wskey parameter value
-        logged_url = open_url.sub(/wskey=.*?&/,"wskey=###&")
+        logged_url = open_url.sub(/wskey=.*?&/, 'wskey=###&')
         UmdOpenUrl.logger.debug("UmdOpenUrl::Builder.build - open_url: #{logged_url}")
-      }
+      end
       open_url
     end
   end
