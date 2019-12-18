@@ -2,3 +2,15 @@
 
 require 'umd_open_url/builder'
 require 'umd_open_url/resolver'
+require 'logger'
+
+# Common utilities for the module
+module UmdOpenUrl
+  def self.logger
+    @logger ||= defined?(Rails) ? Rails.logger : Logger.new(STDOUT)
+  end
+
+  def self.logger=(logger)
+    @logger = logger
+  end
+end

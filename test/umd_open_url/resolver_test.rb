@@ -6,86 +6,100 @@ class TestResolver < Minitest::Test
   def test_resolver_with_non_json_response
     stub_request(:get, 'http://example.com/non_json_response')
       .to_return(body: 'Hello world')
-    json_response = UmdOpenUrl::Resolver.resolve('http://example.com/non_json_response')
-    assert_nil json_response
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/non_json_response')
+    assert links.empty?
   end
 
   def test_resolver_with_empty_response
     stub_request(:get, 'http://example.com/empty_response')
       .to_return(body: '')
-    json_response = UmdOpenUrl::Resolver.resolve('http://example.com/empty_response')
-    assert_nil json_response
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/empty_response')
+    assert links.empty?
   end
 
   def test_resolver_with_404_response
     stub_request(:get, 'http://example.com/404_response')
       .to_return(body: '', status: 404)
-    json_response = UmdOpenUrl::Resolver.resolve('http://example.com/404_response')
-    assert_nil json_response
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/404_response')
+    assert links.empty?
   end
 
   def test_resolver_with_empty_json_response
     stub_request(:get, 'http://example.com/empty_json_response').to_return(body: '{}')
-    json_response = UmdOpenUrl::Resolver.resolve('http://example.com/empty_json_response')
-    assert_equal Hash.new, json_response # rubocop:disable Style/EmptyLiteral
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/empty_json_response')
+    assert links.empty?
   end
 
   def test_resolver_with_invalid_json_response
     stub_request(:get, 'http://example.com/invalid_json_response').to_return(body: '{')
-    json_response = UmdOpenUrl::Resolver.resolve('http://example.com/invalid_json_response')
-    assert_nil json_response
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/invalid_json_response')
+    assert links.empty?
   end
 
   def test_resolver_with_invalid_linkerurl_response
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org/"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_nil link
+    stub_request(:get, 'http://example.com/invalid_linkerurl').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org/"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/invalid_linkerurl')
+    assert links.empty?
   end
 
-  def test_parser_with_nil
-    link = UmdOpenUrl::Resolver.parse_response(nil)
-    assert_nil link
+  def test_resolver_with_single_valid_linkerurl_response
+    stub_request(:get, 'http://example.com/single_linkerurl').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?foo=abc"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/single_linkerurl')
+    assert_equal 1, links.size
+    assert_equal 'http://link.worldcat.org?foo=abc', links[0]
   end
 
-  def test_parser_with_empty_json
-    json = JSON.parse('{}')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_nil link
-  end
+  def test_resolver_with_multiple_valid_linkerurl_response
+    stub_request(:get, 'http://example.com/multiple_linkerurl').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?foo=abc"}, {"linkerurl": "http://link.worldcat.org?bar=cde"} ]'
+    )
 
-  def test_parser_with_invalid_linkerurl_response
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org/"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_nil link
-  end
-
-  def test_parser_with_valid_linkerurl_response
-    # linkerurl should have query parameters
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?foo=abc"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/multiple_linkerurl')
+    assert_equal 2, links.size
+    assert_equal 'http://link.worldcat.org?foo=abc', links[0]
+    assert_equal 'http://link.worldcat.org?bar=cde', links[1]
   end
 
   def test_wskey_filtering # rubocop:disable Metrics/AbcSize
-    # linkerurl should have query parameters
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?foo=abc&wskey=123"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    # wskey parameter should not be included in links
 
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?wskey=123&foo=abc"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    # wskey at end
+    stub_request(:get, 'http://example.com/wskey_filtering').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?foo=abc&wskey=123"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/wskey_filtering')
+    assert_equal 'http://link.worldcat.org?foo=abc', links[0]
 
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?wskey=123&foo=abc"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?foo=abc', link
+    # wskey at beginning
+    stub_request(:get, 'http://example.com/wskey_filtering').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?wskey=123&foo=abc"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/wskey_filtering')
+    assert_equal 'http://link.worldcat.org?foo=abc', links[0]
 
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?bar=456&wskey=123&foo=abc"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org?bar=456&foo=abc', link
+    # wskey in middle
+    stub_request(:get, 'http://example.com/wskey_filtering').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?bar=456&wskey=123&foo=abc"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/wskey_filtering')
+    assert_equal 'http://link.worldcat.org?bar=456&foo=abc', links[0]
 
-    json = JSON.parse('[{"linkerurl": "http://link.worldcat.org?wskey=123"}]')
-    link = UmdOpenUrl::Resolver.parse_response(json)
-    assert_equal 'http://link.worldcat.org', link
+    # wskey as only parameter
+    stub_request(:get, 'http://example.com/wskey_filtering').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?wskey=123"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/wskey_filtering')
+    assert_equal 'http://link.worldcat.org', links[0]
+
+    # No wskey parameter
+    stub_request(:get, 'http://example.com/wskey_filtering').to_return(
+      body: '[{"linkerurl": "http://link.worldcat.org?foo=123"}]'
+    )
+    links = UmdOpenUrl::Resolver.resolve('http://example.com/wskey_filtering')
+    assert_equal 'http://link.worldcat.org?foo=123', links[0]
   end
 end

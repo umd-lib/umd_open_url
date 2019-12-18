@@ -15,3 +15,7 @@ require 'webmock/minitest'
 require 'byebug'
 
 Minitest::Reporters.use!
+
+# Set logging level to FATAL so we don't
+# have log statements in test output
+UmdOpenUrl.logger.level = Logger::FATAL
