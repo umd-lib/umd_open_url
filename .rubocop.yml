@@ -7,14 +7,14 @@ AllCops:
   Exclude:
     - 'bin/*'
 
-  TargetRubyVersion: 2.3
+  TargetRubyVersion: 2.6
 
 # Don't require gems in Gemfile to be in alphabetical order.
 Bundler/OrderedGems:
   Enabled: false
 
 # Increase max allowed line length
-Metrics/LineLength:
+Layout/LineLength:
   Max: 120
 
 Metrics/ClassLength:
